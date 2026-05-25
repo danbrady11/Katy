@@ -58,7 +58,14 @@ export default function App() {
     setManualDayType(d => d ? (d === 'A' ? 'B' : 'A') : (getTodayDayType(sessions, todayKey) === 'A' ? 'B' : 'A'))
   }
 
-  const sessionStarted = !!sessions[todayKey]?._dayType
+  // Lock day type only when at least one set has been marked done
+  const sessionStarted = useMemo(() => {
+    const s = sessions[todayKey]
+    if (!s) return false
+    const day = DAYS[s._dayType]
+    if (!day) return false
+    return day.exercises.some(ex => s[ex.id]?.sets?.some(set => set.done))
+  }, [sessions, todayKey])
 
   // Prefill weights from last same-day-type session
   const prefillData = useMemo(() => {
