@@ -43,11 +43,22 @@ export default function App() {
 
   const todayKey = toDateKey(new Date())
 
-  // Determine day type — if today already started, use its stored type
+  // Determine day type — if today already started use stored, else auto + allow manual override
+  const [manualDayType, setManualDayType] = useState(null)
+
   const dayType = useMemo(() => {
     if (sessions[todayKey]?._dayType) return sessions[todayKey]._dayType
+    if (manualDayType) return manualDayType
     return getTodayDayType(sessions, todayKey)
-  }, [sessions, todayKey])
+  }, [sessions, todayKey, manualDayType])
+
+  function swapDayType() {
+    // Only allow swap if session hasn't started yet
+    if (sessions[todayKey]?._dayType) return
+    setManualDayType(d => d ? (d === 'A' ? 'B' : 'A') : (getTodayDayType(sessions, todayKey) === 'A' ? 'B' : 'A'))
+  }
+
+  const sessionStarted = !!sessions[todayKey]?._dayType
 
   // Prefill weights from last same-day-type session
   const prefillData = useMemo(() => {
@@ -82,10 +93,21 @@ export default function App() {
       <header style={styles.header}>
         <div style={styles.logo}>EOS <span style={{ color: 'var(--accent)' }}>Training</span></div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {/* Day type pill */}
-          {day && (
-            <div style={{ ...styles.dayPill, background: day.bg, color: day.color, border: `1px solid ${day.color}55` }}>
-              {day.name}
+          {/* Day type pill + swap button */}
+          {day && activeView === 'workout' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ ...styles.dayPill, background: day.bg, color: day.color, border: `1px solid ${day.color}55` }}>
+                {day.name}
+              </div>
+              {!sessionStarted && (
+                <button
+                  onClick={swapDayType}
+                  title={`Switch to ${dayType === 'A' ? 'Lower (B)' : 'Upper (A)'}`}
+                  style={{ ...styles.swapBtn, color: day.color, borderColor: day.color + '55', background: day.bg }}
+                >
+                  ⇄
+                </button>
+              )}
             </div>
           )}
           <div style={styles.navTabs}>
@@ -157,6 +179,12 @@ const styles = {
     transition: 'all 0.15s', cursor: 'pointer',
   },
   navActive: { color: '#fff', boxShadow: 'var(--shadow)' },
-  loadingBar: { height: '3px', background: 'var(--border)', overflow: 'hidden' },
+  swapBtn: {
+    width: '30px', height: '30px', borderRadius: '50%', border: '1.5px solid',
+    fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer', transition: 'all 0.15s', flexShrink: 0,
+    lineHeight: 1,
+  },
   loadingPulse: { height: '100%', width: '30%', borderRadius: '2px' },
 }
