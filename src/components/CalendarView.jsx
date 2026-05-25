@@ -103,13 +103,44 @@ export default function CalendarView({ calendarData, sessions, onCalendarChange 
     const key = toDateKey(viewYear, viewMonth, day)
     setSelectedDate(key)
     const ex = calendarData[key]
-    setEditEntry(ex ? { type:ex.type, notes:ex.notes||'', duration:ex.duration||'' } : { type:'', notes:'', duration:'' })
+    // types is now an array; support old single-type entries
+    const types = ex?.types || (ex?.type ? [ex.type] : [])
+    // durations is a map of type -> minutes
+    const durations = ex?.durations || (ex?.type && ex?.duration ? { [ex.type]: ex.duration } : {})
+    setEditEntry({ types, durations, notes: ex?.notes || '' })
     setModalOpen(true)
   }
 
+  function toggleType(typeId) {
+    setEditEntry(e => {
+      const has = e.types.includes(typeId)
+      const types = has ? e.types.filter(t => t !== typeId) : [...e.types, typeId]
+      return { ...e, types }
+    })
+  }
+
+  function setDuration(typeId, val) {
+    setEditEntry(e => ({ ...e, durations: { ...e.durations, [typeId]: val } }))
+  }
+
   function saveEntry() {
-    if (!editEntry.type) return
-    onCalendarChange({ ...calendarData, [selectedDate]: { ...calendarData[selectedDate], ...editEntry } })
+    if (!editEntry.types.length) return
+    // Store as multi-type entry; keep legacy type field as first for backward compat
+    onCalendarChange({
+      ...calendarData,
+      [selectedDate]: {
+        type: editEntry.types[0],
+        types: editEntry.types,
+        durations: editEntry.durations,
+        notes: editEntry.notes,
+        // Aggregate duration for tally backward compat
+        duration: editEntry.types.reduce((sum, t) => {
+          const d = editEntry.durations[t]
+          const isWorkout = t === 'A' || t === 'B'
+          return sum + (d ? parseInt(d) : (isWorkout ? LIFT_DEFAULT : 0))
+        }, 0).toString(),
+      }
+    })
     setModalOpen(false)
   }
 
@@ -124,7 +155,7 @@ export default function CalendarView({ calendarData, sessions, onCalendarChange 
     const mp = todayKey.slice(0,7)
     let w=0, m=0
     Object.entries(calendarData).forEach(([key, entry]) => {
-      const mins = entry.duration ? parseInt(entry.duration) : ((entry.type === 'A' || entry.type === 'B') ? LIFT_DEFAULT : 0)
+      const mins = entry.duration ? parseInt(entry.duration) : 0
       if (getWeekKey(key)===wk) w+=mins
       if (key.startsWith(mp)) m+=mins
     })
@@ -132,9 +163,10 @@ export default function CalendarView({ calendarData, sessions, onCalendarChange 
   }, [calendarData, todayKey])
 
   const selectedEntry = selectedDate ? calendarData[selectedDate] : null
-  const isWorkoutEntry = selectedEntry?.type === 'A' || selectedEntry?.type === 'B'
-  const selectedSession = isWorkoutEntry ? sessions?.[selectedDate] : null
-  const isWorkoutType = editEntry?.type === 'A' || editEntry?.type === 'B'
+  const selectedTypes = selectedEntry?.types || (selectedEntry?.type ? [selectedEntry.type] : [])
+  const firstWorkoutType = selectedTypes.find(t => t === 'A' || t === 'B')
+  const selectedSession = firstWorkoutType ? sessions?.[selectedDate] : null
+  const isWorkoutType = editEntry?.types?.some(t => t === 'A' || t === 'B')
 
   return (
     <div>
@@ -179,13 +211,14 @@ export default function CalendarView({ calendarData, sessions, onCalendarChange 
             const key = toDateKey(viewYear, viewMonth, day)
             const entry = calendarData[key]
             const isToday = key === todayKey
-            const info = entry ? typeInfo(entry.type) : null
-            const mins = entry?.duration ? parseInt(entry.duration) : ((entry?.type==='A' || entry?.type==='B') ? LIFT_DEFAULT : null)
+            const entryTypes = entry?.types || (entry?.type ? [entry.type] : [])
+            const info = entryTypes.length > 0 ? typeInfo(entryTypes[0]) : null
+            const mins = entry?.duration ? parseInt(entry.duration) : null
             return (
               <div key={key} onClick={()=>openDay(day)} style={{ ...styles.dayCell, background: isToday ? 'var(--accent-light)' : 'var(--surface)', border: isToday ? '2px solid var(--accent)' : '1px solid var(--border)' }}>
                 <div style={{ ...styles.dayNum, color: isToday?'var(--accent)':'var(--text)', fontWeight: isToday?700:400 }}>{day}</div>
-                {info && <div style={{ ...styles.entryPill, background:info.bg, color:info.color }}>{info.label.slice(0,4)}</div>}
-                {mins && <div style={styles.minsLabel}>{fmtMins(mins)}</div>}
+                {info && <div style={{ ...styles.entryPill, background:info.bg, color:info.color }}>{entryTypes.length > 1 ? `${entryTypes.length} acts` : info.label.slice(0,4)}</div>}
+                {mins > 0 && <div style={styles.minsLabel}>{fmtMins(mins)}</div>}
               </div>
             )
           })}
@@ -196,24 +229,26 @@ export default function CalendarView({ calendarData, sessions, onCalendarChange 
       <div style={styles.recentSection}>
         <div style={styles.sectionLabel}>Recent Activity</div>
         {Object.entries(calendarData).sort(([a],[b])=>b.localeCompare(a)).slice(0,10).map(([key, entry]) => {
-          const info = typeInfo(entry.type)
+          const entryTypes = entry?.types || (entry?.type ? [entry.type] : [])
+          const info = typeInfo(entryTypes[0] || '')
           const [,m,d] = key.split('-')
           const dateStr = `${MONTHS[parseInt(m)-1].slice(0,3)} ${parseInt(d)}`
-          const sess = (entry.type==='A' || entry.type==='B') ? sessions?.[key] : null
-          const mins = entry.duration ? parseInt(entry.duration) : ((entry.type==='A' || entry.type==='B') ? LIFT_DEFAULT : null)
+          const workoutType = entryTypes.find(t => t === 'A' || t === 'B')
+          const sess = workoutType ? sessions?.[key] : null
+          const mins = entry.duration ? parseInt(entry.duration) : null
           return (
-            <div key={key} style={styles.recentRow} onClick={()=>{ setSelectedDate(key); setEditEntry({type:entry.type,notes:entry.notes||'',duration:entry.duration||''}); setModalOpen(true) }}>
+            <div key={key} style={styles.recentRow} onClick={()=>{ setSelectedDate(key); const types=entry?.types||(entry?.type?[entry.type]:[]);const durations=entry?.durations||(entry?.type&&entry?.duration?{[entry.type]:entry.duration}:{});setEditEntry({types,durations,notes:entry.notes||''}); setModalOpen(true) }}>
               <div style={{ ...styles.recentAccent, background:info.color }} />
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={styles.recentTop}>
                   <span style={styles.recentDate}>{dateStr}</span>
-                  <span style={{ ...styles.recentType, color:info.color, background:info.bg }}>{info.label}</span>
-                  {mins && <span style={styles.recentMins}>{fmtMins(mins)}</span>}
+                  {entryTypes.map(tid => { const ti = typeInfo(tid); return <span key={tid} style={{ ...styles.recentType, color:ti.color, background:ti.bg }}>{ti.label}</span> })}
+                  {mins > 0 && <span style={styles.recentMins}>{fmtMins(mins)}</span>}
                 </div>
                 {entry.notes && <div style={styles.recentNote}>{entry.notes}</div>}
-                {sess && DAYS[entry.type] && (
+                {sess && workoutType && DAYS[workoutType] && (
                   <div style={styles.recentSets}>
-                    {DAYS[entry.type].exercises.map(ex => {
+                    {DAYS[workoutType].exercises.map(ex => {
                       const exData = sess[ex.id]
                       if (!exData?.sets) return null
                       const done = exData.sets.filter(s => s.done)
@@ -222,7 +257,7 @@ export default function CalendarView({ calendarData, sessions, onCalendarChange 
                       return <span key={ex.id} style={styles.miniSet}>{ex.name.split(' ').pop()}: {done.length}×{done[0]?.reps||ex.reps} @ {w}lb</span>
                     })}
                     {sess._finisher?.completedRounds > 0 && (
-                      <span style={{ ...styles.miniSet, color: info.color }}>{DAYS[entry.type].finisher.label}: {sess._finisher.completedRounds}/{DAYS[entry.type].finisher.rounds} rounds</span>
+                      <span style={{ ...styles.miniSet, color: info.color }}>{DAYS[workoutType].finisher.label}: {sess._finisher.completedRounds}/{DAYS[workoutType].finisher.rounds} rounds</span>
                     )}
                   </div>
                 )}
@@ -242,35 +277,62 @@ export default function CalendarView({ calendarData, sessions, onCalendarChange 
               <button style={styles.closeBtn} onClick={()=>setModalOpen(false)}>✕</button>
             </div>
             <div style={styles.modalBody}>
-              {selectedSession && selectedEntry && (
+              {selectedSession && firstWorkoutType && (
                 <div style={{ marginBottom:'1.25rem' }}>
                   <div style={styles.fieldLabel}>Workout Log</div>
-                  <div style={{ ...styles.sessionCard, borderColor: typeInfo(selectedEntry.type).color }}>
-                    <SessionDetail dayType={selectedEntry.type} sessionData={selectedSession} />
+                  <div style={{ ...styles.sessionCard, borderColor: typeInfo(firstWorkoutType).color }}>
+                    <SessionDetail dayType={firstWorkoutType} sessionData={selectedSession} />
                   </div>
                 </div>
               )}
 
-              <div style={styles.fieldLabel}>Activity Type</div>
+              <div style={styles.fieldLabel}>Activities <span style={{ fontWeight:400, textTransform:'none', letterSpacing:0 }}>— select all that apply</span></div>
               <div style={styles.typeGrid}>
-                {ALL_CALENDAR_TYPES.map(t => (
-                  <button key={t.id} onClick={()=>setEditEntry(e=>({...e,type:t.id}))} style={{ ...styles.typeBtn, border: editEntry.type===t.id ? `2px solid ${t.color}` : '1.5px solid var(--border)', color: editEntry.type===t.id ? t.color : 'var(--muted)', background: editEntry.type===t.id ? t.bg : 'var(--surface)', fontWeight: editEntry.type===t.id ? 700 : 500 }}>
-                    <div style={{ ...styles.typeDot, background:t.color }} />{t.label}
-                  </button>
-                ))}
+                {ALL_CALENDAR_TYPES.map(t => {
+                  const selected = editEntry.types?.includes(t.id)
+                  return (
+                    <button key={t.id} onClick={() => toggleType(t.id)} style={{ ...styles.typeBtn, border: selected ? `2px solid ${t.color}` : '1.5px solid var(--border)', color: selected ? t.color : 'var(--muted)', background: selected ? t.bg : 'var(--surface)', fontWeight: selected ? 700 : 500 }}>
+                      <div style={{ ...styles.typeDot, background: t.color }} />{t.label}
+                    </button>
+                  )
+                })}
               </div>
 
-              <div style={{ ...styles.fieldLabel, marginTop:'1.25rem' }}>
-                Duration (minutes){isWorkoutType && <span style={styles.durationHint}> — defaults to {LIFT_DEFAULT}min</span>}
-              </div>
-              <input type="number" inputMode="numeric" placeholder={isWorkoutType?`${LIFT_DEFAULT}`:'e.g. 45'} value={editEntry.duration} onChange={e=>setEditEntry(en=>({...en,duration:e.target.value}))} style={styles.durationInput} />
+              {/* Per-activity duration fields */}
+              {editEntry.types?.length > 0 && (
+                <div style={{ marginTop: '1.25rem' }}>
+                  <div style={styles.fieldLabel}>Duration (minutes)</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {editEntry.types.map(typeId => {
+                      const info = typeInfo(typeId)
+                      const isWkt = typeId === 'A' || typeId === 'B'
+                      return (
+                        <div key={typeId} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ ...styles.durationLabel, color: info.color, background: info.bg }}>
+                            {info.label}
+                          </div>
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            placeholder={isWkt ? `${LIFT_DEFAULT}` : '0'}
+                            value={editEntry.durations?.[typeId] || ''}
+                            onChange={e => setDuration(typeId, e.target.value)}
+                            style={styles.durationInputSmall}
+                          />
+                          <span style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>min</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div style={{ ...styles.fieldLabel, marginTop:'1.25rem' }}>Notes</div>
               <textarea value={editEntry.notes} onChange={e=>setEditEntry(en=>({...en,notes:e.target.value}))} placeholder="How it went, PRs, how you felt..." style={styles.textarea} rows={3} />
 
               <div style={styles.modalActions}>
                 {calendarData[selectedDate] && <button style={styles.deleteBtn} onClick={deleteEntry}>Delete</button>}
-                <button style={{ ...styles.saveBtn, opacity: editEntry.type?1:0.4 }} onClick={saveEntry} disabled={!editEntry.type}>Save</button>
+                <button style={{ ...styles.saveBtn, opacity: editEntry.types?.length ? 1 : 0.4 }} onClick={saveEntry} disabled={!editEntry.types?.length}>Save</button>
               </div>
             </div>
           </div>
@@ -322,7 +384,8 @@ const styles = {
   sessionCard: { background:'var(--surface2)', border:'1px solid', borderRadius:'8px', padding:'0.75rem 1rem' },
   fieldLabel: { fontSize:'0.62rem', letterSpacing:'0.18em', textTransform:'uppercase', color:'var(--muted)', marginBottom:'0.6rem', fontWeight:600 },
   durationHint: { fontSize:'0.6rem', fontWeight:400, textTransform:'none', letterSpacing:0, color:'var(--muted2)' },
-  durationInput: { width:'100%', background:'var(--surface2)', border:'1.5px solid var(--border2)', borderRadius:'8px', color:'var(--text)', fontFamily:'var(--font-display)', fontWeight:700, fontSize:'1.5rem', textAlign:'center', padding:'10px', outline:'none' },
+  durationLabel: { fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: '4px', flexShrink: 0, minWidth: '80px', textAlign: 'center' },
+  durationInputSmall: { flex: 1, background: 'var(--surface2)', border: '1.5px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.2rem', textAlign: 'center', padding: '6px 4px', outline: 'none', minWidth: 0 },
   typeGrid: { display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:'6px' },
   typeBtn: { padding:'10px 6px', borderRadius:'8px', fontFamily:'var(--font-display)', fontSize:'0.78rem', letterSpacing:'0.05em', textTransform:'uppercase', display:'flex', flexDirection:'column', alignItems:'center', gap:'5px', transition:'all 0.15s', cursor:'pointer' },
   typeDot: { width:'8px', height:'8px', borderRadius:'50%' },
