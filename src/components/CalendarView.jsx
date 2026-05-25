@@ -40,22 +40,26 @@ function SessionDetail({ dayType, sessionData }) {
   return (
     <div style={sd.wrap}>
       {day.exercises.map(ex => {
-        const d = sessionData[ex.id]
-        if (!d) return null
+        const exData = sessionData[ex.id]
+        if (!exData?.sets) return null
+        const doneSets = exData.sets.filter(s => s.done)
+        if (doneSets.length === 0) return null
+        // Show each completed set
         return (
-          <div key={ex.id} style={sd.row}>
+          <div key={ex.id} style={sd.exBlock}>
             <div style={sd.name}>{ex.name}</div>
-            <div style={sd.stats}>
-              <span style={sd.badge}>{d.doneSets||0}×{d.reps||ex.reps} reps</span>
-              <span style={sd.badge}>{d.weight||'—'} lbs</span>
+            <div style={sd.setsList}>
+              {doneSets.map((s, i) => (
+                <span key={i} style={sd.badge}>{s.reps} × {s.weight || '?'} lbs</span>
+              ))}
             </div>
           </div>
         )
       })}
       {sessionData._finisher?.completedRounds > 0 && (
-        <div style={{ ...sd.row, borderBottom: 'none' }}>
+        <div style={{ ...sd.exBlock, borderBottom: 'none' }}>
           <div style={sd.name}>{day.finisher.label}</div>
-          <div style={sd.stats}>
+          <div style={sd.setsList}>
             <span style={{ ...sd.badge, color: day.color, borderColor: day.color }}>
               {sessionData._finisher.completedRounds}/{day.finisher.rounds} rounds
               {sessionData._finisher.kbWeight ? ` · ${sessionData._finisher.kbWeight} lbs` : ''}
@@ -69,10 +73,10 @@ function SessionDetail({ dayType, sessionData }) {
 
 const sd = {
   wrap: { marginTop: '0.6rem' },
-  row: { display:'flex', justifyContent:'space-between', alignItems:'center', padding:'0.35rem 0', borderBottom:'1px solid var(--border)' },
-  name: { fontSize:'0.78rem', fontWeight:500, color:'var(--text)' },
-  stats: { display:'flex', gap:'5px', flexShrink:0 },
-  badge: { fontSize:'0.68rem', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:'4px', padding:'2px 6px', color:'var(--muted)', fontWeight:500 },
+  exBlock: { padding: '0.4rem 0', borderBottom: '1px solid var(--border)' },
+  name: { fontSize: '0.75rem', fontWeight: 600, color: 'var(--text)', marginBottom: '4px' },
+  setsList: { display: 'flex', flexWrap: 'wrap', gap: '4px' },
+  badge: { fontSize: '0.68rem', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: '4px', padding: '2px 6px', color: 'var(--muted)', fontWeight: 500 },
 }
 
 export default function CalendarView({ calendarData, sessions, onCalendarChange }) {
@@ -210,9 +214,12 @@ export default function CalendarView({ calendarData, sessions, onCalendarChange 
                 {sess && DAYS[entry.type] && (
                   <div style={styles.recentSets}>
                     {DAYS[entry.type].exercises.map(ex => {
-                      const d = sess[ex.id]
-                      if (!d?.doneSets) return null
-                      return <span key={ex.id} style={styles.miniSet}>{ex.name.split(' ').pop()}: {d.doneSets}×{d.reps||ex.reps} @ {d.weight||'?'}lb</span>
+                      const exData = sess[ex.id]
+                      if (!exData?.sets) return null
+                      const done = exData.sets.filter(s => s.done)
+                      if (!done.length) return null
+                      const w = done[0]?.weight || '?'
+                      return <span key={ex.id} style={styles.miniSet}>{ex.name.split(' ').pop()}: {done.length}×{done[0]?.reps||ex.reps} @ {w}lb</span>
                     })}
                     {sess._finisher?.completedRounds > 0 && (
                       <span style={{ ...styles.miniSet, color: info.color }}>{DAYS[entry.type].finisher.label}: {sess._finisher.completedRounds}/{DAYS[entry.type].finisher.rounds} rounds</span>

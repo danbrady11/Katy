@@ -16,11 +16,12 @@ export default function WorkoutDay({ dayType, todaySession, prefillData, onSessi
   const { totalSets, doneSets } = useMemo(() => {
     let total = 0, done = 0
     exercises.forEach(ex => {
+      const sets = todaySession?.[ex.id]?.sets ?? prefillData?.[ex.id]?.sets ?? []
       total += ex.sets
-      done += Math.min(todaySession?.[ex.id]?.doneSets || 0, ex.sets)
+      done += sets.filter(s => s.done).length
     })
     return { totalSets: total, doneSets: done }
-  }, [todaySession, exercises])
+  }, [todaySession, exercises, prefillData])
 
   const finisherDone = (todaySession?._finisher?.completedRounds || 0) >= finisher.rounds
   const pct = totalSets > 0 ? Math.round((doneSets / totalSets) * 100) : 0
@@ -89,7 +90,7 @@ export default function WorkoutDay({ dayType, todaySession, prefillData, onSessi
             key={ex.id}
             exercise={ex}
             sessionData={todaySession?.[ex.id]}
-            prefillWeight={prefillData?.[ex.id]?.weight || ''}
+            prefillSets={prefillData?.[ex.id]?.sets}
             onChange={(data) => handleExChange(ex.id, data)}
             onSetComplete={() => setRestTrigger(t => t + 1)}
           />
