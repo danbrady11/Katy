@@ -103,11 +103,16 @@ export default function CalendarView({ calendarData, sessions, onCalendarChange 
     const key = toDateKey(viewYear, viewMonth, day)
     setSelectedDate(key)
     const ex = calendarData[key]
-    // types is now an array; support old single-type entries
     const types = ex?.types || (ex?.type ? [ex.type] : [])
-    // durations is a map of type -> minutes
     const durations = ex?.durations || (ex?.type && ex?.duration ? { [ex.type]: ex.duration } : {})
-    setEditEntry({ types, durations, notes: ex?.notes || '' })
+    // Default workout types to 60 min if no duration set
+    const durationsWithDefaults = { ...durations }
+    types.forEach(t => {
+      if ((t === 'A' || t === 'B') && !durationsWithDefaults[t]) {
+        durationsWithDefaults[t] = LIFT_DEFAULT.toString()
+      }
+    })
+    setEditEntry({ types, durations: durationsWithDefaults, notes: ex?.notes || '' })
     setModalOpen(true)
   }
 
@@ -115,7 +120,12 @@ export default function CalendarView({ calendarData, sessions, onCalendarChange 
     setEditEntry(e => {
       const has = e.types.includes(typeId)
       const types = has ? e.types.filter(t => t !== typeId) : [...e.types, typeId]
-      return { ...e, types }
+      // Auto-set default duration for workout types
+      const durations = { ...e.durations }
+      if (!has && (typeId === 'A' || typeId === 'B') && !durations[typeId]) {
+        durations[typeId] = LIFT_DEFAULT.toString()
+      }
+      return { ...e, types, durations }
     })
   }
 
