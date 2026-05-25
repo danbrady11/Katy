@@ -72,13 +72,15 @@ export default function App() {
   }
 
   function handleSaveToCalendar() {
-    const durationMins = clockElapsed > 0 ? Math.round(clockElapsed / 60) : undefined
+    const durationMins = clockElapsed > 0 ? Math.round(clockElapsed / 60) : 60
     setCalendar(c => ({
       ...c,
       [todayKey]: {
         type: dayType,
+        types: [dayType],
+        durations: { [dayType]: durationMins.toString() },
+        duration: durationMins.toString(),
         notes: c[todayKey]?.notes || '',
-        ...(durationMins ? { duration: durationMins.toString() } : {}),
       }
     }))
     clockReset()
@@ -95,7 +97,7 @@ export default function App() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {/* Day type pill + swap button */}
           {day && activeView === 'workout' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <div style={{ ...styles.dayPill, background: day.bg, color: day.color, border: `1px solid ${day.color}55` }}>
                 {day.name}
               </div>
@@ -103,9 +105,9 @@ export default function App() {
                 <button
                   onClick={swapDayType}
                   title={`Switch to ${dayType === 'A' ? 'Lower (B)' : 'Upper (A)'}`}
-                  style={{ ...styles.swapBtn, color: day.color, borderColor: day.color + '55', background: day.bg }}
+                  style={{ ...styles.swapBtn, color: day.color, borderColor: day.color, background: day.bg }}
                 >
-                  ⇄
+                  {dayType === 'A' ? 'B?' : 'A?'}
                 </button>
               )}
             </div>
@@ -180,11 +182,10 @@ const styles = {
   },
   navActive: { color: '#fff', boxShadow: 'var(--shadow)' },
   swapBtn: {
-    width: '30px', height: '30px', borderRadius: '50%', border: '1.5px solid',
-    fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    cursor: 'pointer', transition: 'all 0.15s', flexShrink: 0,
-    lineHeight: 1,
+    height: '28px', padding: '0 8px', borderRadius: '6px', border: '1.5px solid',
+    fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.75rem',
+    letterSpacing: '0.05em', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer', transition: 'all 0.15s', flexShrink: 0, textTransform: 'uppercase',
   },
   loadingPulse: { height: '100%', width: '30%', borderRadius: '2px' },
 }
