@@ -46,20 +46,21 @@ export default function App() {
   // Determine day type — if today already started use stored, else auto + allow manual override
   const [manualDayType, setManualDayType] = useState(null)
 
-  const dayType = useMemo(() => {
-    if (sessions[todayKey]?._dayType) return sessions[todayKey]._dayType
-    if (manualDayType) return manualDayType
-    return getTodayDayType(sessions, todayKey)
-  }, [sessions, todayKey, manualDayType])
-
   // Lock day type only when at least one set has been marked done
   const sessionStarted = useMemo(() => {
     const s = sessions[todayKey]
     if (!s) return false
-    const day = DAYS[s._dayType]
-    if (!day) return false
-    return day.exercises.some(ex => s[ex.id]?.sets?.some(set => set.done))
+    const d = DAYS[s._dayType]
+    if (!d) return false
+    return d.exercises.some(ex => s[ex.id]?.sets?.some(set => set.done))
   }, [sessions, todayKey])
+
+  const dayType = useMemo(() => {
+    // Only lock to stored type once work has actually been done
+    if (sessionStarted && sessions[todayKey]?._dayType) return sessions[todayKey]._dayType
+    if (manualDayType) return manualDayType
+    return getTodayDayType(sessions, todayKey)
+  }, [sessions, todayKey, manualDayType, sessionStarted])
 
   function swapDayType() {
     if (sessionStarted) return
