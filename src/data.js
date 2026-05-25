@@ -39,13 +39,13 @@ export const DAY_B = {
   tip: 'Add 10 lbs to leg press and step-ups when all sets are clean. Add 5 lbs to RDL.',
   exercises: [
     { id: 'leg-press',  name: 'Leg Press',  tag: 'machine', sets: 5, reps: 10, note: "Feet shoulder-width mid-plate — don't lock out at top" },
-    { id: 'rdl',        name: 'RDL',        tag: 'barbell', sets: 3, reps: 8,  note: 'Hinge at hips, soft knee — stop at hamstring stretch' },
+    { id: 'rdl',        name: 'RDL',        tag: 'barbell', sets: 4, reps: 8,  note: 'Hinge at hips, soft knee — stop at hamstring stretch' },
     { id: 'step-ups',   name: 'Step-ups',   tag: 'db',      sets: 3, reps: 10, note: 'Hold DBs — full hip extension at top, control the step down' },
   ],
   finisher: {
     id: 'lower-finisher',
     label: 'Lower Finisher',
-    rounds: 4,
+    rounds: 5,
     note: 'No rest between movements · ~60 sec between rounds',
     weightLabel: 'KB Weight (Goblet)',
     movements: [
