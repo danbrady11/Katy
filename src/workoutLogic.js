@@ -54,7 +54,7 @@ export function buildInitialSets(exercise, lastSets, isAssisted) {
     const shouldBump = lastSets?.[0]?.addWeightNext === true
     let weight = lastWeight
     if (shouldBump && lastWeight) {
-      const bump = isAssisted ? -5 : (exercise.id === 'rdl' ? 5 : (exercise.id === 'leg-press' || exercise.id === 'step-ups' ? 10 : 5))
+      const bump = isAssisted ? -5 : (exercise.id === 'leg-press' || exercise.id === 'step-ups' ? 10 : 5)
       const bumped = parseFloat(lastWeight) + bump
       weight = bumped > 0 ? bumped.toString() : '0'
     }
