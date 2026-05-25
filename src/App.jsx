@@ -52,12 +52,6 @@ export default function App() {
     return getTodayDayType(sessions, todayKey)
   }, [sessions, todayKey, manualDayType])
 
-  function swapDayType() {
-    // Only allow swap if session hasn't started yet
-    if (sessions[todayKey]?._dayType) return
-    setManualDayType(d => d ? (d === 'A' ? 'B' : 'A') : (getTodayDayType(sessions, todayKey) === 'A' ? 'B' : 'A'))
-  }
-
   // Lock day type only when at least one set has been marked done
   const sessionStarted = useMemo(() => {
     const s = sessions[todayKey]
@@ -66,6 +60,15 @@ export default function App() {
     if (!day) return false
     return day.exercises.some(ex => s[ex.id]?.sets?.some(set => set.done))
   }, [sessions, todayKey])
+
+  function swapDayType() {
+    if (sessionStarted) return
+    setManualDayType(current => {
+      const auto = getTodayDayType(sessions, todayKey)
+      const current2 = current || auto
+      return current2 === 'A' ? 'B' : 'A'
+    })
+  }
 
   // Prefill weights from last same-day-type session
   const prefillData = useMemo(() => {
