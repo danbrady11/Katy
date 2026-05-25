@@ -5,10 +5,10 @@ export const DAY_A = {
   label: 'Day A — Upper',
   color: 'var(--pull)',
   bg: 'var(--pull-light)',
-  tip: 'Add 5 lbs when you hit all sets clean. For assisted machines, reduce assistance by 5 lbs instead.',
+  tip: 'Add 5 lbs to upper lifts and deadlifts when all sets are clean. For assisted machines, reduce assistance by 5 lbs instead.',
   exercises: [
-    { id: 'incline-press',  name: 'Incline Chest Press', tag: 'machine',  sets: 3, reps: 10, note: 'Machine — adjust seat so handles hit upper chest' },
-    { id: 'assisted-dips',  name: 'Assisted Dips',       tag: 'assisted', sets: 3, reps: 10, note: 'Lower assistance = harder — control the descent' },
+    { id: 'deadlift',      name: 'Deadlift',            tag: 'barbell', sets: 3, reps: 8,  note: 'Hip hinge — bar over mid-foot, flat back, drive through floor' },
+    { id: 'chest-press',    name: 'Chest Press',         tag: 'machine',  sets: 3, reps: 10, note: 'Machine — adjust seat so handles align with mid-chest' },
     { id: 'lat-pulldown',   name: 'Lat Pulldown',        tag: 'machine',  sets: 3, reps: 10, note: 'Wide grip — pull to upper chest, slight lean back' },
     { id: 'cable-row',      name: 'Cable Row',            tag: 'cable',   sets: 3, reps: 10, note: 'Pull to lower chest, pause 1 sec at peak' },
     { id: 'shoulder-press', name: 'Shoulder Press',       tag: 'machine',  sets: 3, reps: 10, note: "Machine — don't shrug at the top" },
