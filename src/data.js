@@ -5,9 +5,9 @@ export const DAY_A = {
   label: 'Day A — Upper',
   color: 'var(--pull)',
   bg: 'var(--pull-light)',
-  tip: 'Add 5 lbs to upper lifts and deadlifts when all sets are clean. For assisted machines, reduce assistance by 5 lbs instead.',
+  tip: 'Add 5 lbs to upper lifts and RDL when all sets are clean. For assisted machines, reduce assistance by 5 lbs instead.',
   exercises: [
-    { id: 'deadlift',      name: 'Deadlift',            tag: 'barbell', sets: 3, reps: 8,  note: 'Hip hinge — bar over mid-foot, flat back, drive through floor' },
+    { id: 'rdl',            name: 'RDL',                 tag: 'barbell', sets: 3, reps: 8,  note: 'Hinge at hips, soft knee — stop at hamstring stretch' },
     { id: 'chest-press',    name: 'Chest Press',         tag: 'machine',  sets: 3, reps: 10, note: 'Machine — adjust seat so handles align with mid-chest' },
     { id: 'lat-pulldown',   name: 'Lat Pulldown',        tag: 'machine',  sets: 3, reps: 10, note: 'Wide grip — pull to upper chest, slight lean back' },
     { id: 'cable-row',      name: 'Cable Row',            tag: 'cable',   sets: 3, reps: 10, note: 'Pull to lower chest, pause 1 sec at peak' },
@@ -36,10 +36,10 @@ export const DAY_B = {
   label: 'Day B — Lower',
   color: 'var(--legs)',
   bg: 'var(--legs-light)',
-  tip: 'Add 10 lbs to leg press and step-ups when all sets are clean. Add 5 lbs to RDL.',
+  tip: 'Add 10 lbs to leg press and step-ups when all sets are clean. Add 5 lbs to deadlift.',
   exercises: [
     { id: 'leg-press',  name: 'Leg Press',  tag: 'machine', sets: 5, reps: 10, note: "Feet shoulder-width mid-plate — don't lock out at top" },
-    { id: 'rdl',        name: 'RDL',        tag: 'barbell', sets: 4, reps: 8,  note: 'Hinge at hips, soft knee — stop at hamstring stretch' },
+    { id: 'deadlift',   name: 'Deadlift',   tag: 'barbell', sets: 4, reps: 6,  note: 'Hip hinge — bar over mid-foot, flat back, drive through floor' },
     { id: 'step-ups',   name: 'Step-ups',   tag: 'db',      sets: 3, reps: 10, note: 'Hold DBs — full hip extension at top, control the step down' },
   ],
   finisher: {
